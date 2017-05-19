@@ -44,7 +44,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 19
+db_schema_version = 20
 
 # These Pokemon could be Dittos
 DITTO_POKEDEX_IDS = [16, 19, 41, 129, 161, 163, 193]
@@ -1774,6 +1774,7 @@ class Account(BaseModel):
     walked = DoubleField(null=True)
     awarded_to_level = SmallIntegerField(default=1)
     num_balls = SmallIntegerField(null=True)
+    warn = BooleanField(null=True)
 
     def update(self, acc):
         self.level = acc.get('level')
@@ -1784,6 +1785,7 @@ class Account(BaseModel):
         self.spins = acc.get('poke_stop_visits')
         self.walked = acc.get('km_walked')
         self.num_balls = acc.get('inventory', {}).get('balls')
+        self.warn = acc.get('warn')
         self.last_modified = datetime.utcnow()
 
     def db_format(self):
@@ -1798,6 +1800,7 @@ class Account(BaseModel):
             'walked': self.walked,
             'awarded_to_level': self.awarded_to_level,
             'num_balls': self.num_balls,
+            'warn': self.warn,
             'last_modified': datetime.utcnow()
         }
 

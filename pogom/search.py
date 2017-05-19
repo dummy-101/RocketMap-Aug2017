@@ -47,9 +47,8 @@ from .models import (parse_map, GymDetails, parse_gyms, MainWorker,
                      WorkerStatus, HashKeys, Account)
 from .utils import now, clear_dict_response
 from .transform import get_new_coords, jitter_location
-from .account import (setup_api, check_login, get_tutorial_state,
-                      complete_tutorial, AccountSet, get_player_inventory,
-                      get_player_stats)
+from .account import (setup_api, check_login, complete_tutorial, AccountSet,
+                      get_player_inventory, get_player_stats, get_player_state)
 from pogom.gainxp import level_up_rewards_request
 from .captcha import captcha_overseer_thread, handle_captcha
 from .proxy import get_new_proxy
@@ -947,9 +946,14 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                 if first_login:
                     first_login = False
 
+                    # Get warning/banned flags and tutorial state.
+                    account.update(get_player_state(api))
+
                     # Check tutorial completion.
                     if args.complete_tutorial:
-                        tutorial_state = get_tutorial_state(api, account)
+                        log.debug('Checking tutorial state for %s.',
+                                  account['username'])
+                        tutorial_state = account['tutorial_state']
 
                         if not all(x in tutorial_state
                                    for x in (0, 1, 3, 4, 7)):
