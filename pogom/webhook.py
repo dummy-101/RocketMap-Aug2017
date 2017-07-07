@@ -61,6 +61,7 @@ def wh_updater(args, queue, key_caches):
         'pokestop': 'pokestop_id',
         'pokemon': 'encounter_id',
         'gym': 'gym_id',
+        'raid': 'gym_id',
         'gym_details': 'id'
     }
 
@@ -191,6 +192,8 @@ def __get_key_fields(whtype):
                     'individual_attack', 'form', 'cp', 'pokemon_level'],
         'gym': ['team_id', 'guard_pokemon_id',
                 'gym_points', 'enabled', 'latitude', 'longitude'],
+        'raid': ['gym_id', 'latitude', 'longitude', 'level', 'raid_start',
+                'raid_end', 'spawn', 'pokemon_id', 'cp'],
         'gym_details': ['latitude', 'longitude', 'team', 'pokemon']
     }
 
