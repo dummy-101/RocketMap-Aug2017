@@ -454,6 +454,13 @@ def get_args():
     parser.add_argument('-gxp', '--gain-xp',
                         help='Do various things to let map accounts gain XP.',
                         action='store_true', default=False)
+    parser.add_argument('-lus', '--lure-stop',
+                        help='Lure up Pokestops Automatically.',
+                        action='store_true', default=False)
+    parser.add_argument('-lf', '--lureFence',
+                        help='Choose area for Pokestop luring')
+    parser.add_argument('-nlf', '--nolureFence',
+                        help='Choose area that CANNOT have Pokestop luring')
     parser.add_argument('-sazl', '--show-all-zoom-level',
                         help=('Show all Pokemon, even excluded, at this map '
                               'zoom level. Set to 0 to disable this feature. '

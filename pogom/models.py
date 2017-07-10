@@ -27,7 +27,7 @@ from playhouse.shortcuts import RetryOperationalError, case
 from playhouse.sqlite_ext import SqliteExtDatabase
 
 from pogom.gainxp import pokestop_spinnable, cleanup_inventory, \
-    spin_pokestop_update_inventory, is_ditto
+    spin_pokestop_update_inventory, lure_pokestop, is_ditto
 from pogom.pgscout import pgscout_encounter
 from . import config
 from .account import (tutorial_pokestop_spin, setup_pogo_account,
@@ -1790,6 +1790,7 @@ class Account(BaseModel):
     walked = DoubleField(null=True)
     awarded_to_level = SmallIntegerField(default=1)
     num_balls = SmallIntegerField(null=True)
+    num_lures = SmallIntegerField(null=True)
     warn = BooleanField(null=True)
     blind = BooleanField(null=True)
 
@@ -1804,6 +1805,7 @@ class Account(BaseModel):
         self.spins = stats.get('poke_stop_visits')
         self.walked = stats.get('km_walked')
         self.num_balls = pgacc.inventory_balls
+        self.num_lures = pgacc.inventory_lures
         self.warn = pgacc.is_warned()
         self.blind = (acc.get('rareless_scans') or 0) >= args.rareless_scans_threshold
         self.last_modified = datetime.utcnow()
@@ -1820,6 +1822,7 @@ class Account(BaseModel):
             'walked': self.walked,
             'awarded_to_level': self.awarded_to_level,
             'num_balls': self.num_balls,
+            'num_lures': self.num_lures,
             'warn': self.warn,
             'blind': self.blind,
             'last_modified': datetime.utcnow()
@@ -2364,6 +2367,10 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     f, step_location):
                     cleanup_inventory(pgacc)
                     spin_pokestop_update_inventory(pgacc, f, step_location)
+                # Lure Stops if in range, has lures, is enabled and is below level 25
+                if args.lure_stop and not account_is_adult and pokestop_spinnable(
+                    f, step_location):
+                    lure_pokestop(args, pgacc, f, step_location)
 
                 if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
                         in encountered_pokestops):
