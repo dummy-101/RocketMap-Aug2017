@@ -25,7 +25,7 @@ from pogom.utils import get_args, now, extract_sprites
 from pogom.altitude import get_gmaps_altitude
 
 from pogom.search import search_overseer_thread
-from pogom.models import (init_database, create_tables, drop_tables,
+from pogom.models import (init_database, create_tables, drop_tables, GymEvent,
                           Pokemon, db_updater, clean_db_loop,
                           verify_table_encoding, verify_database_schema)
 from pogom.webhook import wh_updater
@@ -376,6 +376,13 @@ def main():
     app.set_search_control(pause_bit)
     app.set_heartbeat_control(heartbeat)
     app.set_location_queue(new_location_queue)
+
+    log.info('Checking for non-legit players.')
+    spoofers = GymEvent.find_spoofers()
+    if spoofers:
+        log.info('Non-legit players found: {}'.format(spoofers))
+    else:
+        log.info('No obvious spoofers found.')
 
     if args.no_server:
         # This loop allows for ctrl-c interupts to work since flask won't be

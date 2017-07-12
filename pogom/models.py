@@ -1701,6 +1701,75 @@ class GymDetails(BaseModel):
     url = Utf8mb4CharField()
     last_scanned = DateTimeField(default=datetime.utcnow)
 
+class GymEvent(BaseModel):
+    pokemon_uid = Utf8mb4CharField(primary_key=True, max_length=50)
+    gym_id = Utf8mb4CharField(max_length=50)
+    event = SmallIntegerField()
+    trainer_name = Utf8mb4CharField(index=True, max_length=50)
+    timestamp = DateTimeField()
+
+    @staticmethod
+    def find_spoofers():
+        event_query = (GymEvent
+                       .select()
+                       .order_by(GymEvent.timestamp.asc())
+                       .dicts())
+        gym_query = (Gym
+                     .select(Gym.gym_id,
+                             Gym.latitude,
+                             Gym.longitude)
+                     .dicts())
+
+        trainer_events = {}
+        for e in event_query:
+            if not e['trainer_name'] in trainer_events:
+                trainer_events[e['trainer_name']] = []
+
+            trainer_events[e['trainer_name']].append(e)
+
+        gyms = {}
+        for g in gym_query:
+            gyms[g['gym_id']] = g
+
+        spoofers = []
+        for t in trainer_events:
+            first = True
+            loc1, loc2 = None, None
+            time1, time2 = None, None
+            count = 0
+            for e in trainer_events[t]:
+                gym_id = e['gym_id']
+                if first:
+                    print gyms[gym_id]
+                    loc1 = (gyms[gym_id]['latitude'],
+                            gyms[gym_id]['longitude'])
+                    time1 = e['timestamp']
+                    first = False
+                    continue
+
+                gym_id = e['gym_id']
+                loc2 = (gyms[gym_id]['latitude'], gyms[gym_id]['longitude'])
+                time2 = e['timestamp']
+
+                distance_m = geopy.distance.distance(loc1, loc2).meters
+                time_diff_s = (time2 - time1).total_seconds()
+                speed_mps = distance_m / time_diff_s
+                speed_limit_mps = 5 / 3.6
+                if speed_mps > speed_limit_mps:
+                    count += 1
+
+                loc1 = loc2
+                time1 = time2
+
+            if count:
+                log.info('Player {} violated speed limit {} times.'
+                         .format(t, count))
+                if count >= 3:
+                    spoofers.append(t)
+                    log.info('Player {} is regarded as non-legit.'.format(t))
+
+        return spoofers
+
 
 class Token(flaskDb.Model):
     token = TextField()
@@ -1872,6 +1941,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     pokemon = {}
     pokestops = {}
     gyms = {}
+    gym_events = {}
     skipped = 0
     stopsskipped = 0
     forts = []
@@ -2393,6 +2463,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             # Currently, there are only stops and gyms.
             elif config['parse_gyms'] and f.get('type') is None:
                 gym_display = f.get('gym_display', {})
+                gym_event = gym_display.get('gym_event', [])
                 raid_info = f.get('raid_info', {})
                 raid_pokemon = raid_info.get('raid_pokemon', {})
                 # Send gyms to webhooks.
@@ -2453,6 +2524,17 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             #'pokemon_move_2': raid_pokemon.get('move_2')
                         }))
 
+                for e in gym_event:
+                    if e['event'] == 2:
+                        gym_events[e['pokemon_id']] = {
+                            'pokemon_uid': e['pokemon_id'],
+                            'gym_id': f['id'],
+                            'event': e['event'],
+                            'trainer_name': e['trainer'],
+                            'timestamp': datetime.utcfromtimestamp(
+                                e['timestamp_ms'] / 1000.0)
+                        }
+
         # Helping out the GC.
         del forts
 
@@ -2512,6 +2594,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         db_update_queue.put((Pokestop, pokestops))
     if gyms:
         db_update_queue.put((Gym, gyms))
+    if gym_events:
+        db_update_queue.put((GymEvent, gym_events))
     if spawn_points:
         db_update_queue.put((SpawnPoint, spawn_points))
         db_update_queue.put((ScanSpawnPoint, scan_spawn_points))
@@ -2851,7 +2935,7 @@ def create_tables(db):
     tables = [Pokemon, Pokestop, Gym, ScannedLocation, GymDetails,
               GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-              Token, LocationAltitude, HashKeys, Account]
+              Token, LocationAltitude, HashKeys, Account, GymEvent]
     for table in tables:
         if not table.table_exists():
             log.info('Creating table: %s', table.__name__)
@@ -2866,7 +2950,7 @@ def drop_tables(db):
               GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
               WorkerStatus, SpawnPoint, ScanSpawnPoint,
               SpawnpointDetectionData, LocationAltitude,
-              Token, HashKeys, Account]
+              Token, HashKeys, Account, GymEvent]
     db.connect()
     db.execute_sql('SET FOREIGN_KEY_CHECKS=0;')
     for table in tables:
