@@ -729,8 +729,8 @@ function gymLabel(teamName, teamId, gymPoints, latitude, longitude, lastScanned 
                 typesDisplay += getTypeSpan(type)
             })
             str += `
-                    <br>
                     <div>
+                    <div><img height='70px' style='padding: 5px;' src=static/sprites/${raid['pokemon_id']}.png></div>
                         <b>${raid['pokemon_name']}</b>
                         <span> - </span>
                         <small>
@@ -746,7 +746,6 @@ function gymLabel(teamName, teamId, gymPoints, latitude, longitude, lastScanned 
                         Moves: ${pMove1} / ${pMove2}
                     </div>`
         }
-        str += '<br>'
     }
 
     str += `
@@ -1021,7 +1020,7 @@ function setupGymMarker(item) {
             },
             map: map,
             icon: {
-                url: 'static/icons/' + item['raid']['pokemon_id'] + '.png',
+                url: 'static/sprites/' + item['raid']['pokemon_id'] + '.png',
                 scaledSize: new google.maps.Size(72, 72)
             },
             zIndex: 500
@@ -1098,7 +1097,7 @@ function setupGymMarker(item) {
 function updateGymMarker(item, marker) {
     if (item['raid'] !== null && item['raid']['end'] > Date.now() && item['raid']['pokemon_id'] !== null) {
         marker.setIcon({
-            url: 'static/icons/' + item['raid']['pokemon_id'] + '.png',
+            url: 'static/sprites/' + item['raid']['pokemon_id'] + '.png',
             scaledSize: new google.maps.Size(72, 72)
         })
         marker.setZIndex(500)
