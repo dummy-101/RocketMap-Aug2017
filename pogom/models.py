@@ -631,6 +631,7 @@ class Gym(BaseModel):
                            GymMember.deployment_time,
                            GymMember.last_scanned,
                            GymPokemon.pokemon_id,
+                           GymPokemon.num_upgrades,
                            Trainer.name.alias('trainer_name'),
                            Trainer.level.alias('trainer_level'))
                        .join(Gym, on=(GymMember.gym_id == Gym.gym_id))
@@ -681,13 +682,15 @@ class Gym(BaseModel):
                       .select(Gym.gym_id,
                               Gym.team_id,
                               GymDetails.name,
+                              GymDetails.url,
                               GymDetails.description,
                               Gym.guard_pokemon_id,
                               Gym.slots_available,
                               Gym.latitude,
                               Gym.longitude,
                               Gym.last_modified,
-                              Gym.last_scanned)
+                              Gym.last_scanned,
+                              Gym.total_cp)
                       .join(GymDetails, JOIN.LEFT_OUTER,
                             on=(Gym.gym_id == GymDetails.gym_id))
                       .where(Gym.gym_id == id)
@@ -706,6 +709,7 @@ class Gym(BaseModel):
                            GymMember.deployment_time,
                            GymMember.last_scanned,
                            GymPokemon.pokemon_id,
+                           GymPokemon.num_upgrades,
                            GymPokemon.pokemon_uid,
                            GymPokemon.move_1,
                            GymPokemon.move_2,
@@ -1775,7 +1779,7 @@ class GymEvent(BaseModel):
             for e in trainer_events[t]:
                 gym_id = e['gym_id']
                 if first:
-                    print gyms[gym_id]
+                    #print gyms[gym_id]
                     loc1 = (gyms[gym_id]['latitude'],
                             gyms[gym_id]['longitude'])
                     time1 = e['timestamp']
@@ -2170,7 +2174,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 hlvl_pgacc = None
                 using_accountset = False
 
-                scan_location = [p['latitude'], p['longitude']]
+                scan_location = [p['latitude'], p['longitude'], step_location[2]]
 
                 # If the host has L30s in the regular account pool, we
                 # can just use the current account.
@@ -2205,10 +2209,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     # API that's already logged in.
                     if not hlvl_pgacc:
                         hlvl_status = {
-                            'account': hlvl_account,
                             'proxy_url': status['proxy_url']
                         }
-                        hlvl_pgacc = setup_pogo_account(args, hlvl_status)
+                        hlvl_pgacc = setup_pogo_account(args, hlvl_status, hlvl_account)
 
                         # Hashing key.
                         # TODO: all of this should be handled properly... all
@@ -2251,7 +2254,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         else:
                             # Update level indicator before we clear the
                             # response.
-                            encounter_level = hlvl_account['level']
+                            encounter_level = hlvl_pgacc.player_stats['level']
 
                             # User error?
                             if encounter_level < 30:
@@ -2595,13 +2598,19 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             wh_raid = raids[f['id']].copy()
                             wh_raid.update({
                                 'gym_id': b64_gym_id,
-                                'spawn': raid_info['raid_spawn_ms'] / 1000,
-                                'start': raid_info['raid_battle_ms'] / 1000,
-                                'end': raid_info['raid_end_ms'] / 1000,
+                                'spawn': raid_info['raid_spawn_ms'],
+                                'start': raid_info['raid_battle_ms'],
+                                'end': raid_info['raid_end_ms'],
                                 'latitude': f['latitude'],
-                                'longitude': f['longitude']
+                                'longitude': f['longitude'],
+                                'level': raid_info['raid_level'],
+                                'pokemon_id': raid_pokemon.get('pokemon_id'),
+                                'cp': raid_pokemon.get('cp'),
+                                #'move_1': raid_pokemon.get('move_1'),
+                                #'move_2': raid_pokemon.get('move_2')
                             })
                             wh_update_queue.put(('raid', wh_raid))
+
                 for e in gym_event:
                     if e['event'] == 2:
                         gym_events[e['pokemon_id']] = {

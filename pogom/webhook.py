@@ -201,7 +201,8 @@ def __get_key_fields(whtype):
         ],
         'gym_details': ['latitude', 'longitude', 'team', 'pokemon'],
         'raid': [
-            'spawn', 'start', 'end', 'pokemon_id', 'latitude', 'longitude'
+            'spawn', 'start', 'end', 'pokemon_id', 'latitude', 'longitude',
+            'level', 'pokemon_id', 'cp'
         ]
     }
 
