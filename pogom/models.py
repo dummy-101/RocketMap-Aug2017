@@ -629,6 +629,7 @@ class Gym(BaseModel):
                            GymPokemon.cp.alias('pokemon_cp'),
                            GymMember.cp_decayed,
                            GymMember.deployment_time,
+                           GymMember.deployment_duration_ms,
                            GymMember.last_scanned,
                            GymPokemon.pokemon_id,
                            GymPokemon.num_upgrades,
@@ -707,6 +708,7 @@ class Gym(BaseModel):
                    .select(GymPokemon.cp.alias('pokemon_cp'),
                            GymMember.cp_decayed,
                            GymMember.deployment_time,
+                           GymMember.deployment_duration_ms,
                            GymMember.last_scanned,
                            GymPokemon.pokemon_id,
                            GymPokemon.num_upgrades,
@@ -1701,6 +1703,7 @@ class GymMember(BaseModel):
     last_scanned = DateTimeField(default=datetime.utcnow, index=True)
     deployment_time = DateTimeField()
     cp_decayed = SmallIntegerField()
+    deployment_duration_ms = IntegerField()
 
     class Meta:
         primary_key = False
@@ -1805,7 +1808,8 @@ class GymEvent(BaseModel):
                          .format(t, count))
                 if count >= 3:
                     spoofers.append(t)
-                    log.info('Player {} is regarded as non-legit.'.format(t))
+                    spoofers.append(count)
+                    log.info('Player {} is regarded as non-legit. {} Violations.'.format(t, count))
 
         return spoofers
 
@@ -2755,7 +2759,9 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 'deployment_time':
                     datetime.utcnow() -
                     timedelta(milliseconds=member['deployment_totals']
-                              ['deployment_duration_ms'])
+                              ['deployment_duration_ms']),
+                'deployment_duration_ms': member['deployment_totals']
+                          ['deployment_duration_ms']
             }
             gym_pokemon[i] = {
                 'pokemon_uid':
@@ -3349,6 +3355,8 @@ def database_migrate(db, old_ver):
                                 SmallIntegerField(null=False, default=0)),
             migrator.add_column('gymmember', 'cp_decayed',
                                 SmallIntegerField(null=False, default=0)),
+            migrator.add_column('gymmember', 'deployment_duration_ms',
+                                IntegerField(null=False, default=0)),
             migrator.add_column('gymmember', 'deployment_time',
                                 DateTimeField(
                                     null=False, default=datetime.utcnow())),

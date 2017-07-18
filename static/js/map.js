@@ -419,23 +419,31 @@ function toggleOtherPokemon(pokemonId) {
     }
 }
 
-
 // Converts timestamp to readable String
 function getDateStr(t) {
     var dateStr = 'Unknown'
     if (t) {
-        dateStr = moment(t).format('YYYY-MM-DD HH:mm:ss')
+        dateStr = moment(t).format('YYYY-MM-DD hh:mm:ss A')
     }
     return dateStr
 }
 
 // Converts timestamp to readable String
 function getshortDateStr(t) {
-    var sdateStr = 'Unknown'
+    var dateStr = 'Unknown'
     if (t) {
-        sdateStr = moment(t).format('DD/HH:mm')
+        dateStr = moment(t).format('DD/HH:mm')
     }
-    return sdateStr
+    return dateStr
+}
+
+// Converts timestamp to readable String
+function getTimeStr(t) {
+    var dateStr = 'Unknown'
+    if (t) {
+        dateStr = moment(t).format('hh:mm:ss A')
+    }
+    return dateStr
 }
 
 function scout(encounterId) { // eslint-disable-line no-unused-vars
@@ -564,13 +572,6 @@ function buildProbsDiv(encounterIdLong, prob1, prob2, prob3) {
         </div>
         `
 }
-function getTimeStr(t) {
-    var dateStr = 'Unknown'
-    if (t) {
-        dateStr = moment(t).format('HH:mm:ss')
-    }
-    return dateStr
-}
 
 function pokemonLabel(item) {
     var name = item['pokemon_name']
@@ -583,6 +584,7 @@ function pokemonLabel(item) {
     var longitude = item['longitude']
     var disappearTime = item['disappear_time']
     var disappearDate = new Date(disappearTime)
+    var disappearStr = getDateStr(disappearDate)
     var atk = item['individual_attack']
     var def = item['individual_defense']
     var sta = item['individual_stamina']
@@ -644,7 +646,7 @@ function pokemonLabel(item) {
             <small>${typesDisplay}</small>
         </div>
         <div>
-            Disappears at ${pad(disappearDate.getHours())}:${pad(disappearDate.getMinutes())}:${pad(disappearDate.getSeconds())}
+            <span>${disappearStr}</span>
             <span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span>
         </div>
         <div id="pkmLoc${encounterIdLong}">
@@ -667,53 +669,68 @@ function pokemonLabel(item) {
 
 function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_available, latitude, longitude, lastScanned = null, lastModified = null, name = null, members = [], gymId, raid) {
     var memberStr = ''
-
     for (var i = 0; i < members.length; i++) {
-        var deployStr = getDateStr(members[i].deployment_time)
-        var shortdeployStr = getshortDateStr(members[i].deployment_time)
         var cpdecayStr = ''
         var berryStr = ''
+        var dtimeStr = ''
+        var coinoutStr = ''
+        var deployStr = getDateStr(members[i].deployment_time)
+        var shortdeployStr = getshortDateStr(members[i].deployment_time)
+        var deploycount = members[i].deployment_time
+
+        var timeDiff = Date.now() - members[i].deployment_time
+        var gseconds = Math.floor(timeDiff / 1000) % 60 ;
+        var gminutes = Math.floor((timeDiff / (1000*60)) % 60);
+        var ghours = Math.floor((timeDiff / (1000*60*60)) % 24);
+        var gdays = Math.floor((timeDiff / (1000*60*60*24)) % 7);
+        if (gdays > 0) {
+          dtimeStr += `${gdays}D${ghours}H${gminutes}M`
+        } else if (ghours > 0) {
+          dtimeStr += `${ghours}H${gminutes}M`
+        } else if (gminutes > 0) {
+          dtimeStr += `${gminutes}M`
+        }
+        if (ghours >= 8) {
+          coinoutStr += `<img height='25px' src='static/forts/coin.png'>`
+        }
 
         if (members[i].cp_decayed < members[i].pokemon_cp) {
                   cpdecayStr += `<span class="cp team-${teamId}">${members[i].cp_decayed}</span>`
         }
-        if (members[i].cp_decayed < (members[i].pokemon_cp - 250) && members[i].cp_decayed >= (members[i].pokemon_cp - 500)) {
+        if (members[i].cp_decayed <= (members[i].pokemon_cp - 200) && members[i].cp_decayed >= (members[i].pokemon_cp - 800)) {
                   berryStr += `<img height='25px' src='static/forts/berry1.png'>`
-        } else if (members[i].cp_decayed < (members[i].pokemon_cp - 500) && members[i].cp_decayed >= (members[i].pokemon_cp - 750)) {
+        } else if (members[i].cp_decayed <= (members[i].pokemon_cp - 600) && members[i].cp_decayed >= (members[i].pokemon_cp - 1200)) {
                   berryStr += `<img height='25px' src='static/forts/berry2.png'>`
-        } else if (members[i].cp_decayed < (members[i].pokemon_cp - 750) && members[i].cp_decayed >= (members[i].pokemon_cp - 1000)) {
+        } else if (members[i].cp_decayed <= (members[i].pokemon_cp - 1200) && members[i].cp_decayed >= (members[i].pokemon_cp - 1800)) {
                   berryStr += `<img height='25px' src='static/forts/berry3.png'>`
-        } else if (members[i].cp_decayed < (members[i].pokemon_cp - 1000)) {
+        } else if (members[i].cp_decayed <= (members[i].pokemon_cp - 1800)) {
                   berryStr += `<img height='25px' src='static/forts/berry4.png'>`
         }
-
         memberStr += `
             <span class="gym-member" title="${members[i].pokemon_name} | ${members[i].trainer_name} (Lvl ${members[i].trainer_level}) | Upgraded: ${members[i].num_upgrades}x | Deployed: ${deployStr}">
-                <div><font size="0.3">${shortdeployStr}</font></div>
                 <i class="pokemon-sprite n${members[i].pokemon_id}"></i>
                 <span class="cp team-${teamId}">${members[i].pokemon_cp}</span>
                 <span>${cpdecayStr}</span>
                 <span>${berryStr}</span>
+                <!-- <div><font size="0.3">${dtimeStr}</font></div> -->
+                <div><font size="0.3"><span class='label-countup' count-up='${deploycount}'>(----------)</span></font></div>
+                <div>${coinoutStr}</div>
 
+                <div><font size="0.3">${shortdeployStr}</font></div>
             </span>`
     }
-
     var lastScannedStr = getDateStr(lastScanned)
     var lastModifiedStr = getDateStr(lastModified)
     var directionsStr = ''
     var slotsString = slots_available ? (slots_available === 1 ? '1 Free Slot' : `${slots_available} Free Slots`) : 'No Free Slots'
-
     if (!Store.get('useGymSidebar')) {
         directionsStr = `<div>
                 <a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='View in Maps'>Get directions</a>
             </div>`
     }
-
     var nameStr = (name ? `<div>${name}</div>` : '')
-
     var gymColor = ['0, 0, 0, .4', '74, 138, 202, .6', '240, 68, 58, .6', '254, 217, 40, .6']
     var str
-
     if (teamId === 0) {
         str = `
             <div>
@@ -722,7 +739,8 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                         <b style='color:rgba(${gymColor[teamId]})'>${teamName}</b><br>
                         <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
                     </div>
-                    ${nameStr}`
+                      ${nameStr}
+                    </div>`
     } else if (raid !== null && raid['end'] > Date.now() && raid['pokemon_id'] !== null ) {
       str = `
           <div>
@@ -732,7 +750,7 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                       <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'><img height='70px' style='padding: 5px;' src=static/sprites/${raid['pokemon_id']}.png>
                   </div>
                   <div>
-                      ${nameStr}
+                    ${nameStr}
                   </div>`
     } else if (raid !== null && raid['end'] > Date.now() && raid['pokemon_id'] == null) {
       str = `
@@ -743,7 +761,7 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                       <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'><img height='70px' style='padding: 5px;' src=static/raids/level_${raid['level']}.png>
                   </div>
                   <div>
-                      ${nameStr}
+                    ${nameStr}
                   </div>`
     } else {
         str = `
@@ -754,10 +772,9 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                         <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
                     </div>
                     <div>
-                        ${nameStr}
+                      ${nameStr}
                     </div>`
     }
-
     if (raid !== null && raid['end'] > Date.now()) {
         var raidStartStr = getTimeStr(raid['start'])
         var raidEndsStr = getTimeStr(raid['end'])
@@ -773,13 +790,11 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                         Time: <b>${raidStartStr}</b> - <b>${raidEndsStr}</b>
                         ${raidStr}
                     </div>`
-
         if (raid['pokemon_id'] !== null) {
             var types = raid['pokemon_types']
             var typesDisplay = ''
             var pMove1 = (moves[raid['move_1']] !== undefined) ? i8ln(moves[raid['move_1']]['name']) : 'gen/unknown'
             var pMove2 = (moves[raid['move_2']] !== undefined) ? i8ln(moves[raid['move_2']]['name']) : 'gen/unknown'
-
             $.each(types, function (index, type) {
                 typesDisplay += getTypeSpan(type)
             })
@@ -801,7 +816,6 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                     </div>`
         }
     }
-
     str += `
                 <div>
                   Gym CP: ${total_cp} (${slotsString})
@@ -813,15 +827,16 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                     Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
                 </div>
                 <div>
-                    Last Scanned: ${lastScannedStr}
+                    <font size="0.3">Last Scanned: ${lastScannedStr}</font>
                 </div>
                 <div>
-                    Last Modified: ${lastModifiedStr}
+                    <font size="0.3">Last Modified: ${lastModifiedStr}</font>
                 </div>
-                ${directionsStr}
+                <div>
+                  <font size="0.5">${directionsStr}</font>
+                </div>
             </center>
         </div>`
-
     return str
 }
 
@@ -977,6 +992,26 @@ function getTimeUntil(time) {
 
     return {
         'total': tdiff,
+        'hour': hour,
+        'min': min,
+        'sec': sec,
+        'now': now,
+        'ttime': time
+    }
+}
+
+function getTimeCount(time) {
+    var now = +new Date()
+    var tdiff = now - time
+
+    var sec = Math.floor((tdiff / 1000) % 60)
+    var min = Math.floor((tdiff / 1000 / 60) % 60)
+    var hour = Math.floor((tdiff / (1000 * 60 * 60)) % 24)
+    var day = Math.floor((tdiff / (1000*60*60*24)) % 7);
+
+    return {
+        'total': tdiff,
+        'day': day,
         'hour': hour,
         'min': min,
         'sec': sec,
@@ -1155,6 +1190,7 @@ function setupGymMarker(item) {
                 marker.infoWindow.open(map, marker)
                 clearSelection()
                 updateLabelDiffTime()
+                updateLabelTime()
             })
         }
 
@@ -1355,6 +1391,7 @@ function addListeners(marker) {
             marker.infoWindow.open(map, marker)
             clearSelection()
             updateLabelDiffTime()
+            updateLabelTime()
             marker.persist = true
             marker.infoWindowIsOpen = true
         } else {
@@ -1373,6 +1410,7 @@ function addListeners(marker) {
             marker.infoWindow.open(map, marker)
             clearSelection()
             updateLabelDiffTime()
+            updateLabelTime()
         })
     }
 
@@ -1866,6 +1904,27 @@ var updateLabelDiffTime = function () {
             timestring += ')'
         }
 
+        $(element).text(timestring)
+    })
+}
+
+var updateLabelTime = function () {
+    $('.label-countup').each(function (index, element) {
+        var countUp = getTimeCount(parseInt(element.getAttribute('count-up')))
+        var days = countUp.day
+        var hours = countUp.hour
+        var minutes = countUp.min
+        var seconds = countUp.sec
+        var timestring = ''
+        timestring += '('
+        if (days > 0) {
+          timestring += days + 'D'
+        }
+        if (hours > 0) {
+          timestring += hours + 'H'
+        }
+        timestring += minutes + 'M'
+        timestring += ')'
         $(element).text(timestring)
     })
 }
@@ -2611,6 +2670,7 @@ $(function () {
 
     // run interval timers to regularly update map and timediffs
     window.setInterval(updateLabelDiffTime, 1000)
+    window.setInterval(updateLabelTime, 1000)
     window.setInterval(updateMap, 5000)
     window.setInterval(updateGeoLocation, 1000)
 
