@@ -679,10 +679,11 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
         var deploycount = members[i].deployment_time
 
         var timeDiff = Date.now() - members[i].deployment_time
-        var gseconds = Math.floor(timeDiff / 1000) % 60 ;
-        var gminutes = Math.floor((timeDiff / (1000*60)) % 60);
-        var ghours = Math.floor((timeDiff / (1000*60*60)) % 24);
-        var gdays = Math.floor((timeDiff / (1000*60*60*24)) % 7);
+        var gseconds = Math.floor((timeDiff / 1000) % 60)
+        var gminutes = Math.floor((timeDiff / (1000*60)) % 60)
+        var ghours = Math.floor((timeDiff / (1000*60*60)) % 24)
+        var gdays = Math.floor(timeDiff / (60*60*24*1000))
+
         if (gdays > 0) {
           dtimeStr += `${gdays}D${ghours}H${gminutes}M`
         } else if (ghours > 0) {
@@ -690,7 +691,7 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
         } else if (gminutes > 0) {
           dtimeStr += `${gminutes}M`
         }
-        if (ghours >= 8) {
+        if (ghours >= 8 || gdays >= 1) {
           coinoutStr += `<img height='25px' src='static/forts/coin.png'>`
         }
 
@@ -1007,7 +1008,7 @@ function getTimeCount(time) {
     var sec = Math.floor((tdiff / 1000) % 60)
     var min = Math.floor((tdiff / 1000 / 60) % 60)
     var hour = Math.floor((tdiff / (1000 * 60 * 60)) % 24)
-    var day = Math.floor((tdiff / (1000*60*60*24)) % 7);
+    var day = Math.floor(tdiff / (60*60*24*1000))
 
     return {
         'total': tdiff,
