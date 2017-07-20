@@ -714,7 +714,7 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                 <span>${cpdecayStr}</span>
                 <span>${berryStr}</span>
                 <!-- <div><font size="0.3">${dtimeStr}</font></div> -->
-                <div><font size="0.3"><span class='label-countup' count-up='${deploycount}'>(----------)</span></font></div>
+                <div><font size="0.3"><span class='label-countup' count-up='${deploycount}'>(00H00M)</span></font></div>
                 <div>${coinoutStr}</div>
 
                 <div><font size="0.3">${shortdeployStr}</font></div>
@@ -781,15 +781,17 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
         var raidEndsStr = getTimeStr(raid['end'])
         var levelStr = '<img height="15px" src="static/raids/raid.png">'.repeat(raid['level'])
         var raidStr = ''
-        raidStr += '<div>Start: <b>' + raidStartStr + '</b> <span class="label-countdown" disappears-at="' + raid['start'] + '" start>(00m00s)</span></div>'
-        raidStr += '<div>End: <b>' + raidEndsStr + '</b> <span class="label-countdown" disappears-at="' + raid['end'] + '" end>(00m00s)</span></div>'
+        raidStr += '<div>Start: <b>' + raidStartStr + '</b> <span class="label-countdown" disappears-at="' + raid['start'] + '" start>(00M00S)</span></div>'
+        raidStr += '<div>End: <b>' + raidEndsStr + '</b> <span class="label-countdown" disappears-at="' + raid['end'] + '" end>(00M00S)</span></div>'
         str += `
                     <div>
                         <div style="margin-top: 5px">Raid Level: ${levelStr}</div>
                     </div>
                     <div>
                         Time: <b>${raidStartStr}</b> - <b>${raidEndsStr}</b>
-                        ${raidStr}
+                        <div>
+                          ${raidStr}
+                        </div>
                     </div>`
         if (raid['pokemon_id'] !== null) {
             var types = raid['pokemon_types']
@@ -1888,20 +1890,20 @@ var updateLabelDiffTime = function () {
 
         if (disappearsAt.ttime < disappearsAt.now) {
           if (element.hasAttribute('start')) {
-              timestring = '(started)'
+              timestring = '(Started)'
           } else if (element.hasAttribute('end')) {
-              timestring = '(ended)'
+              timestring = '(Ended)'
           } else {
-            timestring = '(expired)'
+            timestring = '(Expired)'
           }
         } else {
             timestring = '('
             if (hours > 0) {
-                timestring = hours + 'h'
+                timestring += hours + 'H'
             }
 
-            timestring += lpad(minutes, 2, 0) + 'm'
-            timestring += lpad(seconds, 2, 0) + 's'
+            timestring += lpad(minutes, 2, 0) + 'M'
+            timestring += lpad(seconds, 2, 0) + 'S'
             timestring += ')'
         }
 
