@@ -784,6 +784,7 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
         raidStr += '<div>Start: <b>' + raidStartStr + '</b> <span class="label-countdown" disappears-at="' + raid['start'] + '" start>(00M00S)</span></div>'
         raidStr += '<div>End: <b>' + raidEndsStr + '</b> <span class="label-countdown" disappears-at="' + raid['end'] + '" end>(00M00S)</span></div>'
         str += `
+                  <center>
                     <div>
                         <div style="margin-top: 5px">Raid Level: ${levelStr}</div>
                     </div>
@@ -792,7 +793,8 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                         <div>
                           ${raidStr}
                         </div>
-                    </div>`
+                    </div>
+                  </center>`
         if (raid['pokemon_id'] !== null) {
             var types = raid['pokemon_types']
             var typesDisplay = ''
@@ -802,6 +804,7 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                 typesDisplay += getTypeSpan(type)
             })
             str += `
+                  <center>
                     <div>
                         <b>${raid['pokemon_name']}</b>
                         <span> - </span>
@@ -816,10 +819,12 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                     </div>
                     <div>
                         <div style="margin-bottom: 5px">Moves: ${pMove1} / ${pMove2}</div>
-                    </div>`
+                    </div>
+                  </center>`
         }
     }
     str += `
+            <center>
                 <div>
                   Gym CP: ${total_cp} (${slotsString})
                 </div>

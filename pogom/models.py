@@ -560,6 +560,7 @@ class Gym(BaseModel):
     enabled = BooleanField()
     latitude = DoubleField()
     longitude = DoubleField()
+    is_in_battle = BooleanField()
     total_cp = SmallIntegerField()
     last_modified = DateTimeField(index=True)
     last_scanned = DateTimeField(default=datetime.utcnow, index=True)
@@ -689,6 +690,7 @@ class Gym(BaseModel):
                               Gym.slots_available,
                               Gym.latitude,
                               Gym.longitude,
+                              Gym.is_in_battle,
                               Gym.last_modified,
                               Gym.last_scanned,
                               Gym.total_cp)
@@ -2509,6 +2511,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 gym_display = f.get('gym_display', {})
                 raid_info = f.get('raid_info', {})
                 gym_event = gym_display.get('gym_event', [])
+                #log.error('GYM gym_display: %s', f)
+                #log.error('GYM is_in_battle: %s', f.get('is_in_battle'))
                 # Send gyms to webhooks.
                 if args.webhooks and not args.webhook_updates_only:
                     raid_active_until = 0
@@ -2546,6 +2550,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                     'occupied_millis', 0))).timetuple()),
                         'last_modified':
                             f['last_modified_timestamp_ms'],
+                        'is_in_battle':
+                            gym_display.get('is_in_battle', 0),
                         'raid_active_until':
                             raid_active_until
                     }))
@@ -2567,6 +2573,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         f['latitude'],
                     'longitude':
                         f['longitude'],
+                    'is_in_battle':
+                        gym_display.get('is_in_battle', 0),
                     'last_modified':
                         datetime.utcfromtimestamp(
                             f['last_modified_timestamp_ms'] / 1000.0),
@@ -2742,6 +2750,7 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 'team': gym_state['pokemon_fort_proto'].get(
                     'owned_by_team', 0),
                 'name': g['name'],
+                #'is_in_battle': gym_state.fort_data.is_in_battle,
                 'description': g.get('description'),
                 'url': g['url'],
                 'pokemon': [],
@@ -3361,7 +3370,9 @@ def database_migrate(db, old_ver):
                                 DateTimeField(
                                     null=False, default=datetime.utcnow())),
             migrator.add_column('gym', 'total_cp',
-                                SmallIntegerField(null=False, default=0)))
-
+                                SmallIntegerField(null=False, default=0)),
+            migrator.add_column('gym', 'is_in_battle',
+                                BooleanField(null=False, default=False))
+        )
     # Always log that we're done.
     log.info('Schema upgrade complete.')
