@@ -122,6 +122,17 @@ def spin_pokestop_request(pgacc, fort, step_location):
         log.error('Exception while spinning Pokestop: %s.', repr(e))
         return False
 
+def fort_details_request(pgacc, fort):
+    try:
+        return pgacc.req_fort_details(fort['id'],
+                                     fort['latitude'],
+                                     fort['longitude'])
+
+    except Exception as e:
+        log.warning('Exception while downloading fort details: %s', repr(e))
+        return False
+
+
 def lure_pokestop_request(pgacc, modifier, fort, step_location):
     try:
         return pgacc.req_add_fort_modifier(modifier,

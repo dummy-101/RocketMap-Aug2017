@@ -186,7 +186,7 @@ def __get_key_fields(whtype):
         # lure_expiration is a UTC timestamp so it's good (Y).
         'pokestop': [
             'enabled', 'latitude', 'longitude', 'lure_expiration',
-            'active_fort_modifier'
+            'active_fort_modifier', 'name', 'description', 'url', 'deployer'
         ],
         'pokemon': [
             'spawnpoint_id', 'pokemon_id', 'latitude', 'longitude',
@@ -199,10 +199,13 @@ def __get_key_fields(whtype):
             'raid_active_until', 'occupied_since', 'total_cp',
             'slots_available'
         ],
-        'gym_details': ['latitude', 'longitude', 'team', 'pokemon'],
+        'gym_details': [
+            'latitude', 'longitude', 'team', 'pokemon', 'name', 'description',
+            'url', 'total_cp', 'slots_available', 'guard_pokemon_id',
+        ],
         'raid': [
             'spawn', 'start', 'end', 'pokemon_id', 'latitude', 'longitude',
-            'level', 'pokemon_id', 'cp'
+            'level', 'pokemon_id', 'cp', 'move_1', 'move_2',
         ]
     }
 

@@ -65,7 +65,7 @@ var lastUpdateTime
 
 var gymTypes = ['Uncontested', 'Mystic', 'Valor', 'Instinct']
 var gymPrestige = [2000, 4000, 8000, 12000, 16000, 20000, 30000, 40000, 50000]
-var audio = new Audio('static/sounds/ding.mp3')
+var audio = new Audio('static/sounds/pokewho.mp3')
 
 var genderType = ['♂', '♀', '⚲']
 var unownForm = ['unset', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '!', '?']
@@ -667,7 +667,7 @@ function pokemonLabel(item) {
     return contentstring
 }
 
-function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_available, latitude, longitude, lastScanned = null, lastModified = null, name = null, members = [], gymId, raid) {
+function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_available, is_in_battle, latitude, longitude, lastScanned = null, lastModified = null, name = null, members = [], gymId, raid) {
     var memberStr = ''
     for (var i = 0; i < members.length; i++) {
         var cpdecayStr = ''
@@ -719,6 +719,10 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
 
                 <div><font size="0.3">${shortdeployStr}</font></div>
             </span>`
+    }
+    var battleStr = ''
+    if (is_in_battle !== null) {
+      battleStr += `<img height='25px' src='static/forts/battle.png'>`
     }
     var lastScannedStr = getDateStr(lastScanned)
     var lastModifiedStr = getDateStr(lastModified)
@@ -829,7 +833,7 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                   Gym CP: ${total_cp} (${slotsString})
                 </div>
                 <div>
-                    ${memberStr}
+                  ${memberStr}
                 </div>
                 <div>
                     Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
@@ -841,6 +845,9 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
                     <font size="0.3">Last Modified: ${lastModifiedStr}</font>
                 </div>
                 <div>
+                  ${battleStr}
+                </div>
+                <div>
                   <font size="0.5">${directionsStr}</font>
                 </div>
             </center>
@@ -848,7 +855,7 @@ function gymLabel(teamName, teamId, gymPoints, total_cp, deployment_time, slots_
     return str
 }
 
-function pokestopLabel(expireTime, latitude, longitude) {
+function pokestopLabel(expireTime, latitude, longitude, deployer) {
     var str
     if (expireTime) {
         var expireDate = new Date(expireTime)
@@ -866,6 +873,9 @@ function pokestopLabel(expireTime, latitude, longitude) {
             </div>
             <div>
                 <a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='View in Maps'>Get directions</a>
+            </div>
+            <div>
+              Lure Provided By: <b>${deployer}</b>
             </div>`
     } else {
         str = `
@@ -1060,7 +1070,7 @@ function playPokemonSound(pokemonID) {
     if (!Store.get('playCries')) {
         audio.play()
     } else {
-        var audioCry = new Audio('static/sounds/cries/' + pokemonID + '.wav')
+        var audioCry = new Audio('static/sounds/cries/' + pokemonID + '.ogg')
         audioCry.play().catch(function (err) {
             if (err) {
                 console.log('Sound for Pokémon ' + pokemonID + ' is missing, using generic sound instead.')
@@ -1155,6 +1165,18 @@ function setupGymMarker(item) {
                 scaledSize: new google.maps.Size(48, 48)
             }
         })
+    } else if (item['is_in_battle'] !== null) {
+          marker = new google.maps.Marker({
+              position: {
+                  lat: item['latitude'],
+                  lng: item['longitude']
+              },
+              map: map,
+              icon: {
+                  url: 'static/forts/battle/B' + gymTypes[item['team_id']] + '_' + getGymLevel(item) + '.png',
+                  scaledSize: new google.maps.Size(48, 48)
+              }
+          })
     } else {
         marker = new google.maps.Marker({
             position: {
@@ -1174,7 +1196,7 @@ function setupGymMarker(item) {
     }
 
     marker.infoWindow = new google.maps.InfoWindow({
-        content: gymLabel(gymTypes[item['team_id']], item['team_id'], item['gym_points'], item['total_cp'], item['deployment_time'], item['slots_available'], item['latitude'], item['longitude'], item['last_scanned'], item['last_modified'], item['name'], item['pokemon'], item['gym_id'], item['raid']),
+        content: gymLabel(gymTypes[item['team_id']], item['team_id'], item['gym_points'], item['total_cp'], item['deployment_time'], item['slots_available'], item['is_in_battle'], item['latitude'], item['longitude'], item['last_scanned'], item['last_modified'], item['name'], item['pokemon'], item['gym_id'], item['raid']),
         disableAutoPan: true
     })
 
@@ -1226,6 +1248,11 @@ function updateGymMarker(item, marker) {
             url: 'static/forts/raid/' + gymTypes[item['team_id']] + (item['team_id'] !== 0 ? '_' + getGymLevel(item) : '') + '_raid_' + raidEgg + '.png',
             scaledSize: new google.maps.Size(48, 48)
         })
+    } else if (item['is_in_battle'] !== null) {
+          marker.setIcon({
+              url: 'static/forts/battle/B' + gymTypes[item['team_id']] + '_' + getGymLevel(item) + '.png',
+              scaledSize: new google.maps.Size(48, 48)
+          })
     } else {
         marker.setIcon({
             url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[item['team_id']] + '_' + getGymLevel(item) + '.png',
@@ -1233,7 +1260,7 @@ function updateGymMarker(item, marker) {
         })
         marker.setZIndex(1)
     }
-    marker.infoWindow.setContent(gymLabel(gymTypes[item['team_id']], item['team_id'], item['gym_points'], item['total_cp'], item['deployment_time'], item['slots_available'], item['latitude'], item['longitude'], item['last_scanned'], item['last_modified'], item['name'], item['pokemon'], item['gym_id'], item['raid']))
+    marker.infoWindow.setContent(gymLabel(gymTypes[item['team_id']], item['team_id'], item['gym_points'], item['total_cp'], item['deployment_time'], item['slots_available'], item['is_in_battle'], item['latitude'], item['longitude'], item['last_scanned'], item['last_modified'], item['name'], item['pokemon'], item['gym_id'], item['raid']))
     return marker
 }
 
@@ -1263,7 +1290,7 @@ function setupPokestopMarker(item) {
     }
 
     marker.infoWindow = new google.maps.InfoWindow({
-        content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude']),
+        content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['details']['deployer']),
         disableAutoPan: true
     })
 
@@ -1952,7 +1979,7 @@ function sendNotification(title, text, icon, lat, lng) {
         var notification = new Notification(title, {
             icon: icon,
             body: text,
-            sound: 'sounds/ding.mp3'
+            sound: 'sounds/pokewho.mp3'
         })
 
         notification.onclick = function () {
