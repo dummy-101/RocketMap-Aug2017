@@ -573,6 +573,66 @@ function buildProbsDiv(encounterIdLong, prob1, prob2, prob3) {
         `
 }
 
+function build_previous_id_div(encounterIdLong, previous_id) {
+    if (previous_id == 16) {
+      return `
+          <span id="pkmDitto${encounterIdLong}">
+            (Pidgy)
+          </span>
+          `
+    }
+    if (previous_id == 19) {
+      return `
+          <span id="pkmDitto${encounterIdLong}">
+            (Rattata)
+          </span>
+          `
+    }
+    if (previous_id == 41) {
+      return `
+          <span id="pkmDitto${encounterIdLong}">
+            (Zubat)
+          </span>
+          `
+    }
+    if (previous_id == 129) {
+      return `
+          <span id="pkmDitto${encounterIdLong}">
+           (Magikarp)
+          </span>
+          `
+    }
+    if (previous_id == 161) {
+      return `
+          <span id="pkmDitto${encounterIdLong}">
+            (Sentret)
+          </span>
+          `
+    }
+    if (previous_id == 163) {
+      return `
+          <span id="pkmDitto${encounterIdLong}">
+            (Hoothoot)
+          </span>
+          `
+    }
+    if (previous_id == 193) {
+      return `
+          <span id="pkmDitto${encounterIdLong}">
+            (Yanma)
+          </span>
+          `
+    }
+}
+
+function build_worker_level_div(encounterIdLong, worker_level) {
+    return `
+        <div id="pkmWorker${encounterIdLong}">
+			<font size="0.5">Worker Level: <b>${worker_level}</b></font>
+        </div>
+        `
+}
+
 function pokemonLabel(item) {
     var name = item['pokemon_name']
     var rarityDisplay = item['pokemon_rarity'] ? '(' + item['pokemon_rarity'] + ')' : ''
@@ -601,6 +661,8 @@ function pokemonLabel(item) {
     var prob3 = item['catch_prob_3']
     var ratingAttack = item['rating_attack']
     var ratingDefense = item['rating_defense']
+    var worker_level = item['worker_level']
+    var previous_id = item['previous_id']
     var encounterIdLong = atob(encounterId)
 
     $.each(types, function (index, type) {
@@ -623,7 +685,13 @@ function pokemonLabel(item) {
     if (prob1 !== null) {
         details += buildProbsDiv(encounterIdLong, prob1, prob2, prob3)
     }
-
+    if (worker_level != null) {
+        details += build_worker_level_div(encounterIdLong, worker_level)
+    }
+    var ditto = ''
+    if (id === 132 && previous_id != null) {
+        ditto += build_previous_id_div(encounterIdLong, previous_id)
+    }
     var scoutLink
     if (cp === null) {
         scoutLink = `<a href='javascript:void(0);' onclick='javascript:scout("${encounterId}");' title='Scout CP'>Scout</a>`
@@ -632,38 +700,48 @@ function pokemonLabel(item) {
     }
 
     var contentstring = `
+      <center>
         <div>
-            <b>${name}</b>`
+            <font size="0.5"><b><a href='http://skoodat.dlinkddns.com/pokemon/${id}' target='_blank' title='View in Pokedex'>#${id}</a></b></font>
+        </div>
+        <div>
+            <font size="3"><b>${ditto} ${name}</b></font>`
     if (id === 201 && form !== null && form > 0) {
         contentstring += ` (${unownForm[item['form']]})`
     }
-    contentstring += `<span> - </span>
-            <small>
-                <a href='http://www.pokemon.com/us/pokedex/${id}' target='_blank' title='View in Pokedex'>#${id}</a>
-            </small>
-            <span> ${rarityDisplay}</span>
-            <span> - </span>
-            <small>${typesDisplay}</small>
+    contentstring += `
+            <div>
+              <img style="vertical-align:top" width='50px' height='50px' src='static/sprites/${id}.png'>
+            </div>
+            <div>
+              <span> ${rarityDisplay}</span>
+            </div>
+            <div>
+              <small>${typesDisplay}</small>
+            </div>
         </div>
         <div>
             <span>${disappearStr}</span>
-            <span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span>
+            <b><span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span></b>
         </div>
         <div id="pkmLoc${encounterIdLong}">
             Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
         </div>
             ${details}
         <div id="scoutInfo${encounterIdLong}" style="display:none;"></div>
-        <div>
+        <div><font size="0.5"><b>
             <a href='javascript:excludePokemon(${id})'>Exclude</a>&nbsp;&nbsp
             <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>&nbsp;&nbsp
             <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>&nbsp;&nbsp
             <a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='View in Maps'>Get directions</a>
-        </div>
-        <div>
+          </font></b>
+        </div></font>
+        <div><font size="0.5"><b>
             <a href='javascript:void(0);' onclick='javascript:toggleOtherPokemon("${id}");' title='Toggle display of other Pokemon'>Toggle Others</a>&nbsp;&nbsp
             ${scoutLink}
-        </div>`
+          </font></b>
+        </div>
+      </center>`
     return contentstring
 }
 

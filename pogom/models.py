@@ -134,6 +134,8 @@ class Pokemon(BaseModel):
     catch_prob_3 = DoubleField(null=True)
     rating_attack = CharField(null=True, max_length=1)
     rating_defense = CharField(null=True, max_length=1)
+    previous_id = SmallIntegerField(null=True)
+    worker_level = SmallIntegerField(null=True)
     last_modified = DateTimeField(
         null=True, index=True, default=datetime.utcnow)
 
@@ -2054,7 +2056,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     # and a list of forts.
     cells = map_dict['GET_MAP_OBJECTS']['map_cells']
     # Get the level for the pokestop spin, and to send to webhook.
-    level = account.get('level', 1)
+    level = pgacc.player_stats['level']
     # Use separate level indicator for our L30 encounters.
     encounter_level = level
 
@@ -2359,7 +2361,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'catch_prob_2': None,
                 'catch_prob_3': None,
                 'rating_attack': None,
-                'rating_defense': None
+                'rating_defense': None,
+                'previous_id' : None,
+                'worker_level' : encounter_level
             }
 
             # Check for Unown's alphabetic character.
@@ -2369,8 +2373,14 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             if (encounter_result is not None and 'wild_pokemon'
                     in encounter_result['ENCOUNTER']):
+
+                # Get Pokemon Info
                 pokemon_info = encounter_result['ENCOUNTER']['wild_pokemon'][
                     'pokemon_data']
+
+                # Get Prob Chances
+                probs = encounter_result['ENCOUNTER'][
+                    'capture_probability']['capture_probability']
 
                 # IVs.
                 individual_attack = pokemon_info.get('individual_attack', 0)
@@ -2381,24 +2391,32 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 # Logging: let the user know we succeeded.
                 log.debug('Encounter for Pokémon ID %s'
                           + ' at %s, %s successful: '
-                          + ' %s/%s/%s, %s CP.',
+                          + ' %s/%s/%s, %s CP. %s, %s, %s Probability.',
                           pokemon_id,
                           p['latitude'],
                           p['longitude'],
                           individual_attack,
                           individual_defense,
                           individual_stamina,
-                          cp)
+                          cp,
+                          probs[0],
+                          probs[1],
+                          probs[2],)
 
-                pokemon[p['encounter_id']].update({
-                    'individual_attack': individual_attack,
-                    'individual_defense': individual_defense,
-                    'individual_stamina': individual_stamina,
-                    'move_1': pokemon_info['move_1'],
-                    'move_2': pokemon_info['move_2'],
-                    'height': pokemon_info['height_m'],
-                    'weight': pokemon_info['weight_kg']
-                })
+                # Only add IV/Probs if we're level 30+.
+                if encounter_level >= 30:
+                    pokemon[p['encounter_id']].update({
+                        'individual_attack': individual_attack,
+                        'individual_defense': individual_defense,
+                        'individual_stamina': individual_stamina,
+                        'move_1': pokemon_info['move_1'],
+                        'move_2': pokemon_info['move_2'],
+                        'height': pokemon_info['height_m'],
+                        'weight': pokemon_info['weight_kg'],
+                        'catch_prob_1': probs[0],
+                        'catch_prob_2': probs[1],
+                        'catch_prob_3': probs[2]
+                    })
 
                 # Only add CP if we're level 30+.
                 if encounter_level >= 30:
@@ -2409,11 +2427,24 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Catch pokemon to check for Ditto if --gain-xp enabled
             # Original code by voxx!
+            previous_id = None
             have_balls = pgacc.inventory_balls > 0
             if args.gain_xp and not account_is_adult and pokemon_id in DITTO_POKEDEX_IDS and have_balls:
                 if is_ditto(args, pgacc, p):
-                    pokemon[p['encounter_id']]['pokemon_id'] = 132
+                    #pokemon[p['encounter_id']]['pokemon_id'] = 132
+                    #pokemon_id = 132
+                    # Assign Ditto + Moves, Gender And PreviousID.
+                    pokemon[p['encounter_id']].update({
+                        'gender': 3,
+                        'move_1': 242,
+                        'move_2': 133,
+                        'rating_attack': 'A',
+                        'rating_defense': 'A',
+                        'pokemon_id': 132,
+                        'previous_id': p['pokemon_data']['pokemon_id']
+                    })
                     pokemon_id = 132
+                    previous_id = p['pokemon_data']['pokemon_id']
                     # Scout result is useless
                     scout_result = None
 
@@ -2436,7 +2467,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'catch_prob_3': scout_result['catch_prob_3'],
                     'rating_attack': scout_result['rating_attack'],
                     'rating_defense': scout_result['rating_defense'],
+                    'worker_level': scout_result['scout_level'],
                 })
+                encounter_level = scout_result['scout_level']
 
             if args.webhooks:
                 if (not args.webhook_whitelist
@@ -2452,12 +2485,19 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'seconds_until_despawn': seconds_until_despawn,
                         'spawn_start': start_end[0],
                         'spawn_end': start_end[1],
-                        'player_level': encounter_level
+                        'worker_level': encounter_level
+                        #'previous_id': previous_id,
                     })
                     if wh_poke['cp_multiplier'] is not None:
                         wh_poke.update({
                             'pokemon_level': calc_pokemon_level(
                                 wh_poke['cp_multiplier'])
+                        })
+                    if wh_poke['catch_prob_1'] is None:
+                        wh_poke.update({
+                            'catch_prob_1': 0,
+                            'catch_prob_2': 0,
+                            'catch_prob_3': 0,
                         })
                     wh_update_queue.put(('pokemon', wh_poke))
 
@@ -2880,7 +2920,7 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 'total_cp':
                     gym_state['pokemon_fort_proto']['gym_display'].get('total_gym_cp', 0),
                 'name': g['name'],
-                'is_in_battle': gym_state['pokemon_fort_proto']['gym_display'].get('is_in_battle', 0),
+                'is_in_battle': gym_state['pokemon_fort_proto'].get('is_in_battle'),
                 'description': g.get('description'),
                 'url': g['url'],
                 'pokemon': [],
