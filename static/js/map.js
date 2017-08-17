@@ -1921,7 +1921,7 @@ function updateMap() {
         showInBoundsMarkers(mapData.pokestops, 'pokestop')
         showInBoundsMarkers(mapData.scanned, 'scanned')
         showInBoundsMarkers(mapData.spawnpoints, 'inbound')
-        //      drawScanPath(result.scanned);
+        //drawScanPath(result.scanned);
         clearStaleMarkers()
 
         updateScanned()
@@ -2269,7 +2269,7 @@ function showGymDetails(id) { // eslint-disable-line no-unused-vars
         var gymLevelStr = ''
         if (result.team_id !== 0 && result.slots_available > 0) {
             gymLevelStr = `<div>
-                <b>Level ${gymLevel}${freeSlotsStr}</b>
+                <b>${freeSlots} Free Slots</b>
             </div>`
         }
         var pokemonHtml = ''

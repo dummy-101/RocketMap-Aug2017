@@ -2586,7 +2586,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             name = pokestop_details[id]['name']
                             description = pokestop_details[id]['description']
                             url = pokestop_details[id]['url']
-                            deployer = pokestop_details[id]['deployer']
+                            if pokestop_details[id]['deployer']:
+                                deployer = pokestop_details[id]['deployer']
                             #log.warning('==========================POKESTOP DETAILS %s', deployer)
 
                     if lure_expiration is not None:
@@ -2641,7 +2642,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 raid_info = f.get('raid_info', {})
                 is_in_battle = f.get('is_in_battle')
                 gym_event = gym_display.get('gym_event', [])
-                log.error('GYM gym_display: %s', f)
+                #log.error('GYM gym_display: %s', f)
                 #log.error('GYM: %s', is_in_battle)
                 # Send gyms to webhooks.
                 if args.webhooks and not args.webhook_updates_only:
@@ -2901,6 +2902,7 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
         gym_state = g['gym_status_and_defenders']
         gym_id = gym_state['pokemon_fort_proto']['id']
 
+        #log.error('++++ %s', gym_state)
         gym_details[gym_id] = {
             'gym_id': gym_id,
             'name': g['name'],
